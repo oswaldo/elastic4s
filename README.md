@@ -538,7 +538,7 @@ case class Character(name: String, location: String)
 
 implicit object CharacterHitReader extends HitReader[Character] {
   override def read(hit: Hit): Either[Throwable, Character] = {
-    Character(hit.sourceAsMap("name").toString, hit.sourceAsMap("location").toString)
+    Right(Character(hit.sourceAsMap("name").toString, hit.sourceAsMap("location").toString))
   }
 }
 
@@ -548,7 +548,7 @@ val resp = client.execute {
 
 // .as[Character] will look for an implicit HitAs[Character] in scope
 // and then convert all the hits into Characters for us.
-val characters :Seq[Character] = resp.as[Character]
+val characters :Seq[Character] = resp.to[Character]
 
 ```
 
