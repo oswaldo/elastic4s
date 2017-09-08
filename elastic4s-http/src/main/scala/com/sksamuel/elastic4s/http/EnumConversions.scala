@@ -4,14 +4,14 @@ import com.sksamuel.elastic4s.VersionType
 import com.sksamuel.elastic4s.json.{XContentBuilder, XContentFactory}
 import com.sksamuel.elastic4s.searches.QueryRescoreMode.{Avg, Max, Min, Multiply, Total}
 import com.sksamuel.elastic4s.searches.aggs.{HistogramOrder, SubAggCollectionMode, TermsOrder}
-import com.sksamuel.elastic4s.searches.queries.funcscorer.{CombineFunction, FunctionScoreQueryScoreMode}
+import com.sksamuel.elastic4s.searches.queries.funcscorer.{CombineFunction, FunctionScoreQueryScoreMode, MultiValueMode}
 import com.sksamuel.elastic4s.searches.queries.geo.GeoDistance.{Arc, Plane}
 import com.sksamuel.elastic4s.searches.queries.geo.{GeoDistance, GeoExecType, GeoValidationMethod}
 import com.sksamuel.elastic4s.searches.queries.matches.MultiMatchQueryBuilderType.{BEST_FIELDS, CROSS_FIELDS, MOST_FIELDS, PHRASE, PHRASE_PREFIX}
 import com.sksamuel.elastic4s.searches.queries.matches.{MultiMatchQueryBuilderType, ZeroTermsQuery}
 import com.sksamuel.elastic4s.searches.queries.{RegexpFlag, SimpleQueryStringFlag}
 import com.sksamuel.elastic4s.searches.sort.{SortMode, SortOrder}
-import com.sksamuel.elastic4s.searches.suggestion.{SortBy, StringDistanceImpl, SuggestMode}
+import com.sksamuel.elastic4s.searches.suggestion.{Fuzziness, SortBy, StringDistanceImpl, SuggestMode}
 import com.sksamuel.elastic4s.searches.{DateHistogramInterval, QueryRescoreMode, ScoreMode}
 import org.joda.time.DateTimeZone
 
@@ -94,6 +94,23 @@ object EnumConversions {
 
   def simpleQueryStringFlag(flag: SimpleQueryStringFlag): String = flag.toString.toUpperCase
 
+  def fuzziness(fuzziness: Fuzziness): String = fuzziness match {
+    case Fuzziness.Zero => "0"
+    case Fuzziness.One => "1"
+    case Fuzziness.Two => "2"
+    case Fuzziness.Auto => "AUTO"
+  }
+
+  def regexpFlag(regexpFlag: RegexpFlag): String = regexpFlag match {
+    case RegexpFlag.Intersection => "INTERSECTION"
+    case RegexpFlag.Complement => "COMPLEMENT"
+    case RegexpFlag.Empty => "EMPTY"
+    case RegexpFlag.AnyString => "ANYSTRING"
+    case RegexpFlag.Interval => "INTERVAL"
+    case RegexpFlag.All => "ALL"
+    case RegexpFlag.None => "NONE"
+  }
+
   def zeroTermsQuery(terms: ZeroTermsQuery): String = terms match {
     case ZeroTermsQuery.All => "all"
     case ZeroTermsQuery.None => "none"
@@ -105,6 +122,16 @@ object EnumConversions {
     case CROSS_FIELDS => "cross_fields"
     case PHRASE => "phrase"
     case PHRASE_PREFIX => "phrase_prefix"
+  }
+
+  def multiValueMode(mode: MultiValueMode): String = {
+    mode match {
+      case MultiValueMode.Avg => "avg"
+      case MultiValueMode.Max => "max"
+      case MultiValueMode.Min => "min"
+      case MultiValueMode.Sum => "sum"
+      case MultiValueMode.Median => "median"
+    }
   }
 
 }

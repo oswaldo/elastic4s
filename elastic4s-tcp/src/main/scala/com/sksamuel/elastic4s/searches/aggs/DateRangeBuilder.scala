@@ -2,7 +2,7 @@ package com.sksamuel.elastic4s.searches.aggs
 
 import com.sksamuel.elastic4s.ScriptBuilder
 import org.elasticsearch.search.aggregations.AggregationBuilders
-import org.elasticsearch.search.aggregations.bucket.range.date.DateRangeAggregationBuilder
+import org.elasticsearch.search.aggregations.bucket.range.DateRangeAggregationBuilder
 
 object DateRangeBuilder {
 
@@ -15,7 +15,7 @@ object DateRangeBuilder {
     agg.format.foreach(builder.format)
     agg.script.map(ScriptBuilder.apply).foreach(builder.script)
     agg.keyed(builder.keyed)
-    agg.timeZone(builder.timeZone)
+    agg.timeZone.foreach(builder.timeZone)
 
     agg.unboundedFromRanges.foreach {
       case (Some(key), str: String) => builder.addUnboundedFrom(key, str)

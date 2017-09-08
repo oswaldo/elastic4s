@@ -3,10 +3,21 @@ package com.sksamuel.elastic4s.testkit
 import com.sksamuel.elastic4s.{ElasticApi, RefreshPolicy}
 import org.scalatest.WordSpec
 
+import scala.util.Try
+
 class IndexMatchersTest extends WordSpec with IndexMatchers with DiscoveryLocalNodeProvider with ElasticApi {
 
   import com.sksamuel.elastic4s.ElasticDsl._
-  private val indexname = getClass.getSimpleName.toLowerCase
+
+  private val indexname = "indexmatcherstest"
+
+  Try {
+    client.execute(deleteIndex(indexname)).await
+  }
+
+    Try {
+    client.execute(deleteIndex("sammy")).await
+  }
 
   client.execute {
     bulk(

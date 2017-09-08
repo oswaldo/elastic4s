@@ -15,7 +15,7 @@ import com.sksamuel.elastic4s.http.index._
 import com.sksamuel.elastic4s.http.index.admin._
 import com.sksamuel.elastic4s.http.index.mappings.PutMappingResponse
 import com.sksamuel.elastic4s.http.search.{ClearScrollResponse, SearchHit, SearchHits}
-import com.sksamuel.elastic4s.http.update.UpdateResponse
+import com.sksamuel.elastic4s.http.update.{UpdateByQueryResponse, UpdateResponse}
 import com.sksamuel.elastic4s.http.validate.ValidateResponse
 import com.sksamuel.elastic4s.http.values.Shards
 import com.sksamuel.elastic4s.index.RichIndexResponse
@@ -65,8 +65,7 @@ object ResponseConverterImplicits {
         response.version,
         response.original.getResult.getLowercase,
         response.original.forcedRefresh(),
-        Shards(shardInfo.getTotal, shardInfo.getFailed, shardInfo.getSuccessful),
-        response.created
+        Shards(shardInfo.getTotal, shardInfo.getFailed, shardInfo.getSuccessful)
       )
     }
   }
@@ -122,6 +121,7 @@ object ResponseConverterImplicits {
             x.index,
             x.`type`,
             x.score,
+            None, // TODO
             x.sourceAsMap.asScalaNested,
             x.fields.mapValues(_.value),
             x.highlightFields.mapValues(_.fragments.map(_.string)),
@@ -167,22 +167,6 @@ object ResponseConverterImplicits {
     )
   }
 
-  implicit object DeleteResponseConverter extends ResponseConverter[TcpDeleteResponse, DeleteResponse] {
-    override def convert(response: TcpDeleteResponse): DeleteResponse = {
-      val shardInfo = response.getShardInfo
-
-      DeleteResponse(
-        Shards(shardInfo.getTotal, shardInfo.getFailed, shardInfo.getSuccessful),
-        response.getResult == DocWriteResponse.Result.DELETED,
-        response.getIndex,
-        response.getType,
-        response.getId,
-        response.getVersion,
-        response.getResult.getLowercase
-      )
-    }
-  }
-
   implicit object DeleteByQueryResponseConverter extends ResponseConverter[BulkByScrollResponse, DeleteByQueryResponse] {
     override def convert(response: BulkByScrollResponse): DeleteByQueryResponse = {
       val field = classOf[BulkByScrollResponse].getDeclaredField("status")
@@ -193,6 +177,28 @@ object ResponseConverterImplicits {
         response.getTook.millis,
         response.isTimedOut,
         status.getTotal,
+        response.getDeleted,
+        response.getBatches,
+        response.getVersionConflicts,
+        response.getNoops,
+        status.getThrottled.millis,
+        if(status.getRequestsPerSecond == Float.PositiveInfinity) -1 else status.getRequestsPerSecond.toLong,
+        status.getThrottledUntil.millis
+      )
+    }
+  }
+
+  implicit object UpdateByQueryResponseConverter extends ResponseConverter[BulkByScrollResponse, UpdateByQueryResponse] {
+    override def convert(response: BulkByScrollResponse): UpdateByQueryResponse = {
+      val field = classOf[BulkByScrollResponse].getDeclaredField("status")
+      field.setAccessible(true)
+      val status = field.get(response).asInstanceOf[BulkByScrollTask.Status]
+
+      UpdateByQueryResponse(
+        response.getTook.millis,
+        response.isTimedOut,
+        status.getTotal,
+        response.getUpdated,
         response.getDeleted,
         response.getBatches,
         response.getVersionConflicts,

@@ -1,11 +1,10 @@
 package com.sksamuel.elastic4s.http.index.mappings
 
 import com.sksamuel.elastic4s.IndexesAndTypes
-import com.sksamuel.elastic4s.http.{HttpExecutable, ResponseHandler}
+import com.sksamuel.elastic4s.http.{HttpEntity, HttpExecutable, HttpRequestClient, HttpResponse, ResponseHandler}
 import com.sksamuel.elastic4s.indexes.PutMappingBuilderFn
 import com.sksamuel.elastic4s.mappings.{GetMappingDefinition, PutMappingDefinition}
-import org.apache.http.entity.{ContentType, StringEntity}
-import org.elasticsearch.client.{Response, RestClient}
+import org.apache.http.entity.ContentType
 
 import scala.concurrent.Future
 import scala.util.Try
@@ -17,8 +16,8 @@ trait MappingExecutables {
   implicit object GetMappingHttpExecutable extends HttpExecutable[GetMappingDefinition, Seq[IndexMappings]] {
 
     override def responseHandler: ResponseHandler[Seq[IndexMappings]] = new ResponseHandler[Seq[IndexMappings]] {
-      override def onResponse(response: Response): Try[Seq[IndexMappings]] = Try {
-        val raw = ResponseHandler.fromEntity[Map[String, Map[String, Map[String, Map[String, Any]]]]](response.getEntity)
+      override def handle(response: HttpResponse): Try[Seq[IndexMappings]] = Try {
+        val raw = ResponseHandler.fromEntity[Map[String, Map[String, Map[String, Map[String, Any]]]]](response.entity.get)
         raw.map { case (index, types) =>
           val mappings = types("mappings").map { case (tpe, properties) =>
             tpe -> properties("properties").asInstanceOf[Map[String, Any]]
@@ -28,7 +27,7 @@ trait MappingExecutables {
       }
     }
 
-    override def execute(client: RestClient, request: GetMappingDefinition): Future[Response] = {
+    override def execute(client: HttpRequestClient, request: GetMappingDefinition): Future[HttpResponse] = {
       val endpoint = request.indexesAndTypes match {
         case IndexesAndTypes(Nil, Nil) => "/_mapping"
         case IndexesAndTypes(indexes, Nil) => s"/${indexes.mkString(",")}/_mapping"
@@ -40,7 +39,7 @@ trait MappingExecutables {
 
   implicit object PutMappingHttpExecutable extends HttpExecutable[PutMappingDefinition, PutMappingResponse] {
 
-    override def execute(client: RestClient, request: PutMappingDefinition): Future[Response] = {
+    override def execute(client: HttpRequestClient, request: PutMappingDefinition): Future[HttpResponse] = {
 
       val endpoint = s"/${request.indexesAndType.indexes.mkString(",")}/_mapping/${request.indexesAndType.`type`}"
 
@@ -51,14 +50,13 @@ trait MappingExecutables {
       request.expandWildcards.foreach(params.put("expand_wildcards", _))
 
       val body = PutMappingBuilderFn(request).string()
-      val entity = new StringEntity(body, ContentType.APPLICATION_JSON)
+      val entity = HttpEntity(body, ContentType.APPLICATION_JSON.getMimeType)
 
       client.async("PUT", endpoint, params.toMap, entity)
     }
   }
 }
 
-case class GetMapping()
 
 case class PutMappingResponse(acknowledged: Boolean) {
   def success: Boolean = acknowledged

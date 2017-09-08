@@ -8,5 +8,11 @@
         "param2": "value2"
       }
     }
+  },
+  "weight": 0.4,
+  "filter": {
+    "match_all": {
+      "boost": 1.0
+    }
   }
 }

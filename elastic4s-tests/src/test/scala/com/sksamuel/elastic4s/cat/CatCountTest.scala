@@ -5,7 +5,18 @@ import com.sksamuel.elastic4s.http.ElasticDsl
 import com.sksamuel.elastic4s.testkit.DiscoveryLocalNodeProvider
 import org.scalatest.{FlatSpec, Matchers}
 
+import scala.util.Try
+
 class CatCountTest extends FlatSpec with Matchers with DiscoveryLocalNodeProvider with ElasticDsl {
+
+  Try {
+    http.execute {
+      deleteIndex("catcount1")
+    }.await
+    http.execute {
+      deleteIndex("catcount2")
+    }.await
+  }
 
   http.execute {
     bulk(
@@ -14,7 +25,6 @@ class CatCountTest extends FlatSpec with Matchers with DiscoveryLocalNodeProvide
       indexInto("catcount2/landmarks").fields("name" -> "stonehenge")
     ).refresh(RefreshPolicy.Immediate)
   }.await
-
 
   "cats count" should "return count for all cluster" in {
     http.execute {

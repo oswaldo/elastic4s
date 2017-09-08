@@ -1,13 +1,12 @@
 package com.sksamuel.elastic4s.search
 
-import com.sksamuel.elastic4s.Preference.Shards
-import com.sksamuel.elastic4s.analyzers.{FrenchLanguageAnalyzer, SnowballAnalyzer, WhitespaceAnalyzer}
 import com.sksamuel.elastic4s._
+import com.sksamuel.elastic4s.analyzers.{FrenchLanguageAnalyzer, SnowballAnalyzer, WhitespaceAnalyzer}
 import com.sksamuel.elastic4s.searches.aggs.TermsOrder
-import com.sksamuel.elastic4s.searches.queries.{RegexpFlag, SimpleQueryStringFlag}
 import com.sksamuel.elastic4s.searches.queries.funcscorer.MultiValueMode
 import com.sksamuel.elastic4s.searches.queries.geo.GeoDistance
 import com.sksamuel.elastic4s.searches.queries.matches.{MultiMatchQueryBuilderType, ZeroTermsQuery}
+import com.sksamuel.elastic4s.searches.queries.{RegexpFlag, SimpleQueryStringFlag}
 import com.sksamuel.elastic4s.searches.sort.{SortMode, SortOrder}
 import com.sksamuel.elastic4s.searches.suggestion.SuggestMode
 import com.sksamuel.elastic4s.searches.{DateHistogramInterval, GeoPoint, QueryRescoreMode, ScoreMode, SearchType}
@@ -299,7 +298,7 @@ class SearchDslTest extends FlatSpec with MockitoSugar with JsonSugar with OneIn
   it should "generate json for regex query post filter" in {
     val req = search("music") types "bands" postFilter {
       regexQuery("singer", "chris martin")
-    } preference com.sksamuel.elastic4s.Preference.PreferNode("a")
+    }
     req.show should matchJsonResource("/json/search/search_regex_query.json")
   }
 
@@ -374,14 +373,14 @@ class SearchDslTest extends FlatSpec with MockitoSugar with JsonSugar with OneIn
   it should "generate json for type filter" in {
     val req = search("music") types "bands" postFilter {
       typeQuery("sometype")
-    } preference com.sksamuel.elastic4s.Preference.Shards("5", "7")
+    }
     req.show should matchJsonResource("/json/search/search_type_filter.json")
   }
 
   it should "generate json for range filter" in {
     val req = search("music") types "bands" postFilter {
       rangeQuery("released") gte "2010-01-01" lte "2012-12-12"
-    } preference Shards("5", "7")
+    }
     req.show should matchJsonResource("/json/search/search_range_filter.json")
   }
 
@@ -408,7 +407,7 @@ class SearchDslTest extends FlatSpec with MockitoSugar with JsonSugar with OneIn
     req.show should matchJsonResource("/json/search/search_sort_score.json")
   }
 
-  it should "generate correct json for script sort" ignore {
+  it should "generate correct json for script sort" in {
     val req = search("music") types "bands" sortBy {
       scriptSort(script("document.score").lang("java")) typed "number" order SortOrder
         .DESC nestedPath "a.b.c" sortMode "min"
@@ -416,7 +415,7 @@ class SearchDslTest extends FlatSpec with MockitoSugar with JsonSugar with OneIn
     req.show should matchJsonResource("/json/search/search_sort_script.json")
   }
 
-  it should "generate correct json for script sort with params" ignore {
+  it should "generate correct json for script sort with params" in {
     val req = search("music") types "bands" sortBy {
       scriptSort(script("doc.score")
         .params(Map("param1" -> "value1", "param2" -> "value2"))) typed "number" order SortOrder.Desc
@@ -541,16 +540,16 @@ class SearchDslTest extends FlatSpec with MockitoSugar with JsonSugar with OneIn
 
   it should "generate correct json for function score query" in {
 
-    val scorers = Seq(
+    val functionDefinitions = Seq(
       randomScore(1234).weight(1.2),
       scriptScore("some script here").weight(0.5),
-      gaussianScore("field1", "1m", "2m").multiValueMode(MultiValueMode.Median),
+      gaussianScore("field1", "1m", "2m").multiValueMode(MultiValueMode.Max),
       fieldFactorScore("field2").factor(1.2)
     )
 
     val req = search("music") types "bands" query {
-      functionScoreQuery("coldplay").scoreMode("multiply").minScore(1.2).scorers(
-        scorers
+      functionScoreQuery("coldplay").scoreMode("multiply").minScore(1.2).functions(
+        functionDefinitions
       ).boost(1.4).maxBoost(1.9).boostMode("max")
     }
     req.show should matchJsonResource("/json/search/search_function_score.json")

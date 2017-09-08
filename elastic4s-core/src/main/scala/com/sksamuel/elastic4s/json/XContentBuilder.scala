@@ -15,7 +15,6 @@ object XContentFactory {
 
 class XContentBuilder(root: JsonNode) {
 
-
   private val stack = new util.ArrayDeque[JsonNode]
   stack.push(root)
 
@@ -91,6 +90,16 @@ class XContentBuilder(root: JsonNode) {
     this
   }
 
+  def field(name: String, long: Long): XContentBuilder = {
+    obj.put(name, long)
+    this
+  }
+
+  def field(name: String, bd: BigDecimal): XContentBuilder = {
+    obj.put(name, bd.underlying)
+    this
+  }
+
   def field(name: String, double: Double): XContentBuilder = {
     obj.put(name, double)
     this
@@ -107,6 +116,8 @@ class XContentBuilder(root: JsonNode) {
       case v: Short => array.add(v)
       case v: Byte => array.add(v)
       case v: BigDecimal => array.add(v.bigDecimal)
+      case null => array.addNull()
+      case other => array.add(other.toString)
     }
     this
   }
@@ -121,14 +132,20 @@ class XContentBuilder(root: JsonNode) {
   def autofield(name: String, value: Any): XContentBuilder = {
     value match {
       case v: String => obj.put(name, v)
+      case v: java.lang.Double => obj.put(name, v)
       case v: Double => obj.put(name, v)
       case v: Float => obj.put(name, v)
       case v: Int => obj.put(name, v)
+      case v: java.lang.Integer => obj.put(name, v)
+      case v: java.lang.Long => obj.put(name, v)
       case v: Long => obj.put(name, v)
       case v: Boolean => obj.put(name, v)
+      case v: java.lang.Boolean => obj.put(name, v)
       case v: Short => obj.put(name, v)
       case v: Byte => obj.put(name, v)
       case v: BigDecimal => obj.put(name, v.bigDecimal)
+      case null => obj.putNull(name)
+      case other => obj.put(name, other.toString)
     }
     this
   }
@@ -164,6 +181,11 @@ class XContentBuilder(root: JsonNode) {
 
   def value(str: Float): XContentBuilder = {
     array.add(str)
+    this
+  }
+
+  def value(bd: BigDecimal): XContentBuilder = {
+    array.add(bd.underlying)
     this
   }
 

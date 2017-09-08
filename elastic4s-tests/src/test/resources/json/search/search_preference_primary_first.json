@@ -1,7 +1,9 @@
 {
-  "query": {
-    "query_string": {
-      "query": "coldplay"
+    "version": true,
+    "preference": "_primary_first",
+    "query": {
+        "query_string": {
+            "query": "coldplay"
+        }
     }
-  }
 }

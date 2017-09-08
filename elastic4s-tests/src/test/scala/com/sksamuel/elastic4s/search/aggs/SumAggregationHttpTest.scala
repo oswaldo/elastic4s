@@ -5,7 +5,15 @@ import com.sksamuel.elastic4s.http.ElasticDsl
 import com.sksamuel.elastic4s.testkit.DiscoveryLocalNodeProvider
 import org.scalatest.{FreeSpec, Matchers}
 
+import scala.util.Try
+
 class SumAggregationHttpTest extends FreeSpec with DiscoveryLocalNodeProvider with Matchers with ElasticDsl {
+
+  Try {
+    http.execute {
+      deleteIndex("sumagg")
+    }.await
+  }
 
   http.execute {
     createIndex("sumagg") mappings {
@@ -14,7 +22,7 @@ class SumAggregationHttpTest extends FreeSpec with DiscoveryLocalNodeProvider wi
         intField("age").stored(true)
       )
     }
-  }.await.acknowledged shouldBe true
+  }.await.right.get.acknowledged shouldBe true
 
   http.execute(
     bulk(

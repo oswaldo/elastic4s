@@ -1,0 +1,13 @@
+{
+  "field_value_factor": {
+    "field": "likes",
+    "factor": 1.2,
+    "modifier": "sqrt",
+    "missing": 1.0
+  },
+  "filter": {
+    "match_all": {
+      "boost": 1.0
+    }
+  }
+}

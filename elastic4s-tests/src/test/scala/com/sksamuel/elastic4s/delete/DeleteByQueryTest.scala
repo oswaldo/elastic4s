@@ -2,55 +2,56 @@ package com.sksamuel.elastic4s.delete
 
 import com.sksamuel.elastic4s.RefreshPolicy
 import com.sksamuel.elastic4s.http.ElasticDsl
-import com.sksamuel.elastic4s.testkit.DualClientTests
-import com.sksamuel.elastic4s.testkit.ResponseConverterImplicits._
+import com.sksamuel.elastic4s.testkit.DiscoveryLocalNodeProvider
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.util.Try
 
-class DeleteByQueryTest extends WordSpec with Matchers with ElasticDsl with DualClientTests {
+class DeleteByQueryTest extends WordSpec with Matchers with ElasticDsl with DiscoveryLocalNodeProvider {
 
-  override protected def beforeRunTests(): Unit = {
+  private val indexname = "charles_dickens"
 
-    Try {
-      execute {
-        deleteIndex("charlesd")
-      }.await
-    }
-
-    execute {
-      createIndex("charlesd").mappings(
-        mapping("characters").fields(
-          textField("name")
-        )
-      ).shards(1).waitForActiveShards(1)
+  Try {
+    http.execute {
+      deleteIndex(indexname)
     }.await
   }
 
+  http.execute {
+    createIndex(indexname).mappings(
+      mapping(indexname).fields(
+        textField("name")
+      )
+    ).shards(1).waitForActiveShards(1)
+  }.await
+
   "delete by query" should {
     "delete matched docs" in {
-      execute {
+      http.execute {
         bulk(
-          indexInto("charlesd" / "characters").fields("name" -> "mr bumbles").id(1),
-          indexInto("charlesd" / "characters").fields("name" -> "artful dodger").id(2),
-          indexInto("charlesd" / "characters").fields("name" -> "mrs bumbles").id(3),
-          indexInto("charlesd" / "characters").fields("name" -> "fagan").id(4)
+          indexInto(indexname).fields("name" -> "mr bumbles").id(1),
+          indexInto(indexname).fields("name" -> "artful dodger").id(2),
+          indexInto(indexname).fields("name" -> "mrs bumbles").id(3),
+          indexInto(indexname).fields("name" -> "fagan").id(4)
         ).refresh(RefreshPolicy.Immediate)
       }.await
 
-      execute {
-        search("charlesd" / "characters").matchAllQuery()
+      http.execute {
+        search(indexname).matchAllQuery()
       }.await.totalHits shouldBe 4
 
-      execute {
-        deleteIn("charlesd").by(matchQuery("name", "bumbles")).refresh(RefreshPolicy.Immediate)
-      }.await.deleted shouldBe 2
+      http.execute {
+        deleteByQuery(indexname, matchQuery("name", "bumbles")).refresh(RefreshPolicy.Immediate)
+      }.await.right.get.deleted shouldBe 2
 
-      Thread.sleep(5000)
-
-      execute {
-        search("charlesd" / "characters").matchAllQuery()
+      http.execute {
+        search(indexname).matchAllQuery()
       }.await.totalHits shouldBe 2
+    }
+    "return a Left[RequestFailure] when the delete fails" in {
+      http.execute {
+        deleteByQuery(",", matchQuery("name", "bumbles"))
+      }.await.left.get.error.`type` shouldBe "action_request_validation_exception"
     }
   }
 }

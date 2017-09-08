@@ -3,13 +3,12 @@ package com.sksamuel.elastic4s.searches.queries.funcscorer
 import com.sksamuel.elastic4s.searches.queries.QueryDefinition
 
 case class FunctionScoreQueryDefinition(query: Option[QueryDefinition] = None,
-                                        scorers: Seq[FilterFunctionDefinition] = Nil,
+                                        functions: Seq[ScoreFunctionDefinition] = Nil,
                                         boost: Option[Double] = None,
                                         maxBoost: Option[Double] = None,
                                         minScore: Option[Double] = None,
                                         scoreMode: Option[FunctionScoreQueryScoreMode] = None,
-                                        boostMode: Option[CombineFunction] = None,
-                                        scriptScore: Option[ScriptScoreDefinition] = None) extends QueryDefinition {
+                                        boostMode: Option[CombineFunction] = None) extends QueryDefinition {
 
   def boost(boost: Double): FunctionScoreQueryDefinition = copy(boost = Option(boost))
   def minScore(min: Double): FunctionScoreQueryDefinition = copy(minScore = Option(min))
@@ -21,18 +20,20 @@ case class FunctionScoreQueryDefinition(query: Option[QueryDefinition] = None,
   def boostMode(mode: String): FunctionScoreQueryDefinition = boostMode(CombineFunction.valueOf(mode.toUpperCase))
   def boostMode(mode: CombineFunction): FunctionScoreQueryDefinition = copy(boostMode = Some(mode))
 
-  def scriptScore(script: ScriptScoreDefinition): FunctionScoreQueryDefinition = copy(scriptScore = Some(script))
-
   def query(query: QueryDefinition): FunctionScoreQueryDefinition = copy(query = Some(query))
 
-  def scorers(first: ScoreFunctionDefinition,
-              rest: ScoreFunctionDefinition*): FunctionScoreQueryDefinition = scorers(first +: rest)
+  def functions(first: ScoreFunctionDefinition,
+                rest: ScoreFunctionDefinition*): FunctionScoreQueryDefinition = functions(first +: rest)
 
-  def scorers(scorers: Iterable[ScoreFunctionDefinition]): FunctionScoreQueryDefinition =
-    scoreFuncs(scorers.map(FilterFunctionDefinition(_)))
+  def functions(functions: Iterable[ScoreFunctionDefinition]): FunctionScoreQueryDefinition = copy(functions = functions.toSeq)
 
-  def scoreFuncs(first: FilterFunctionDefinition,
-                 rest: FilterFunctionDefinition*): FunctionScoreQueryDefinition = scoreFuncs(first +: rest)
+  @deprecated("Use 'functions' instead of this","aaeb522c04733199f4798be9fa26c6c2b1e34d0a")
+  def scorers(first: ScoreFunctionDefinition, rest: ScoreFunctionDefinition*): FunctionScoreQueryDefinition = functions(first +: rest)
+  @deprecated("Use 'functions' instead of this","aaeb522c04733199f4798be9fa26c6c2b1e34d0a")
+  def scorers(scorers: Iterable[ScoreFunctionDefinition]): FunctionScoreQueryDefinition = functions(scorers)
+  @deprecated("Use 'functions' instead of this","aaeb522c04733199f4798be9fa26c6c2b1e34d0a")
+  def scoreFuncs(first: ScoreFunctionDefinition, rest: ScoreFunctionDefinition*): FunctionScoreQueryDefinition = functions(first +: rest)
+  @deprecated("Use 'functions' instead of this","aaeb522c04733199f4798be9fa26c6c2b1e34d0a")
+  def scoreFuncs(functions: Iterable[ScoreFunctionDefinition]): FunctionScoreQueryDefinition = copy(functions = functions.toSeq)
 
-  def scoreFuncs(functions: Iterable[FilterFunctionDefinition]): FunctionScoreQueryDefinition = copy(scorers = functions.toSeq)
 }
