@@ -1,7 +1,7 @@
 package com.sksamuel.elastic4s.http
 
 import cats.Show
-import com.sksamuel.elastic4s.ElasticsearchClientUri
+import com.sksamuel.elastic4s.{ElasticsearchClientUri, ElasticsearchNode}
 import com.sksamuel.exts.Logging
 import org.apache.http.HttpHost
 import org.elasticsearch.client.RestClient
@@ -106,7 +106,7 @@ object HttpClient extends Logging {
             requestConfigCallback: RequestConfigCallback = NoOpRequestConfigCallback,
             httpClientConfigCallback: HttpClientConfigCallback = NoOpHttpClientConfigCallback
            ): HttpClient = {
-    val hosts = uri.hosts.map { case (host, port) =>
+    val hosts = uri.hosts.map { case ElasticsearchNode(host, port, path) =>
       new HttpHost(host, port, if (uri.options.getOrElse("ssl", "false") == "true") "https" else "http")
     }
     logger.info(s"Creating HTTP client on ${hosts.mkString(",")}")
