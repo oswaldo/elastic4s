@@ -6,10 +6,10 @@ import scala.language.implicitConversions
 
 object ElasticsearchClientUri {
 
-  private val IpPattern = "(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])"
-  val HostPattern = "(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])"
-  private val HostListPattern = s"(($IpPattern|$HostPattern)+:(\\d+)(\\/(([^\\/]+).*)?)?,?)"
-  private val UriPattern = s"^elasticsearch:\\/\\/$HostListPattern+(\\?(.*))$$"
+  val HostAndPortPattern = "(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9]):(\\d+)"
+  private val HostListPattern = s"(($HostAndPortPattern)(,$HostAndPortPattern)*)"
+  private val PathPattern = s"(\\/(([^\\/]+).*)?)?"
+  private val UriPattern = s"^elasticsearch:\\/\\/$HostListPattern$PathPattern(\\?(.*))$$"
   private val UriRegex = UriPattern.r
 
   implicit def stringtoUri(str: String): ElasticsearchClientUri = ElasticsearchClientUri(str)
@@ -23,34 +23,33 @@ object ElasticsearchClientUri {
     UriRegex.findFirstMatchIn(str) match {
       case Some(m) => {
         val hoststr = m.group(1)
-        val query = m.group(14)
+        val pathPrefix = Option(m.group(12))
+        val query = StringOption(m.group(16))
         val hosts = hoststr.split(',').map(_.split(':')).map {
-          case Array(host, portAndPath) => {
-            val slashPosition = portAndPath.indexOf("/")
-            val (port, path) = if (slashPosition > -1) portAndPath.splitAt(slashPosition) else (portAndPath, "")
-            (host, port.toInt, if ("".equals(path)) None else Some(path))
+          case Array(host, port) => {
+            (host, port.toInt)
           }
           case _ => sys.error(s"Invalid hosts/ports $hoststr")
         }
-        val options = StringOption(query)
+        val options = query
           .map(_.split('&')).getOrElse(Array.empty)
           .map(_.split('=')).collect {
-          case Array(key, value) => (key, value)
-          case _ => sys.error(s"Invalid query $query")
-        }
-        ElasticsearchClientUri(str, hosts.map{case (host, port, path) => ElasticsearchNode(host, port, path)}.toList, options.toMap)
+            case Array(key, value) => (key, value)
+            case _ => sys.error(s"Invalid query $query")
+          }
+        ElasticsearchClientUri(str, hosts.map { case (host, port) => ElasticsearchNode(host, port) }.toList, pathPrefix, options.toMap)
       }
-      case None => sys.error(s"Invalid uri $str, must be in format elasticsearch://host:port,host:port?querystr")
+      case None => sys.error(s"Invalid uri $str, must be in format elasticsearch://host:port,host:port/pathPrefix?querystring")
     }
   }
 }
 
-case class ElasticsearchNode(host: String, port: Int, path: Option[String])
+case class ElasticsearchNode(host: String, port: Int)
 
 /**
   * Uri used to connect to an Elasticsearch cluster. The general format is
   *
-  * elasticsearch://host:port,host:port?querystring
+  * elasticsearch://host:port,host:port/pathPrefix?querystring
   *
   * Multiple host:port combinations can be specified, seperated by commas.
   * Options can be specified using standard uri query string syntax, eg cluster.name=superman
@@ -58,4 +57,4 @@ case class ElasticsearchNode(host: String, port: Int, path: Option[String])
   * To use HTTPS when using the HTTP client, add ssl=true to the query parameters.
   *
   */
-case class ElasticsearchClientUri(uri: String, hosts: List[ElasticsearchNode], options: Map[String, String] = Map.empty)
+case class ElasticsearchClientUri(uri: String, hosts: List[ElasticsearchNode], pathPrefix: Option[String], options: Map[String, String] = Map.empty)
