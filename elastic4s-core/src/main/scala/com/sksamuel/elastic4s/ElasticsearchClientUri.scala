@@ -9,7 +9,8 @@ object ElasticsearchClientUri {
   val HostAndPortPattern = "(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9]):(\\d+)"
   private val HostListPattern = s"(($HostAndPortPattern)(,$HostAndPortPattern)*)"
   private val PathPattern = s"(\\/(([^\\/]+).*)?)?"
-  private val UriPattern = s"^elasticsearch:\\/\\/$HostListPattern$PathPattern(\\?(.*))$$"
+  private val QueryStringPattern = "(\\?(.*))?"
+  private val UriPattern = s"^elasticsearch:\\/\\/$HostListPattern$PathPattern$QueryStringPattern$$"
   private val UriRegex = UriPattern.r
 
   implicit def stringtoUri(str: String): ElasticsearchClientUri = ElasticsearchClientUri(str)

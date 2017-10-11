@@ -114,7 +114,7 @@ trait TcpClientConstructors extends Logging {
     }
 
     val client = new PreBuiltTransportClient(combinedSettings, plugins: _*)
-    for (ElasticsearchNode(host, port, _) <- uri.hosts) {
+    for (ElasticsearchNode(host, port) <- uri.hosts) {
       client.addTransportAddress(new TransportAddress(new InetSocketAddress(host, port)))
     }
     fromClient(client)
