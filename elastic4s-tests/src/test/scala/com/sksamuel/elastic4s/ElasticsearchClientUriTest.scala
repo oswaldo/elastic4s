@@ -5,7 +5,7 @@ import org.scalatest.{FlatSpec, Matchers}
 class ElasticsearchClientUriTest extends FlatSpec with Matchers {
 
   private def testString(connectionString: String,
-                         hosts: List[(String, Int)],
+                         hosts: List[ElasticsearchNode],
                          options: Map[String, String] = Map.empty): Unit = {
     val uri = ElasticsearchClientUri(connectionString)
     uri.hosts shouldBe hosts
@@ -13,30 +13,32 @@ class ElasticsearchClientUriTest extends FlatSpec with Matchers {
   }
 
   "elasticsearch uri" should "parse multiple host/ports" in {
-    testString("elasticsearch://host1:1234,host2:2345", List("host1" -> 1234, "host2" -> 2345))
+    testString("elasticsearch://host1:1234,host2:2345", List(ElasticsearchNode("host1", 1234), ElasticsearchNode("host2", 2345)))
   }
 
   it should "parse single host/ports" in {
-    testString("elasticsearch://host1:1234", List("host1" -> 1234))
+    testString("elasticsearch://host1:1234", List(ElasticsearchNode("host1", 1234)))
   }
 
   it should "parse single host/ports with trailing slash" in {
-    testString("elasticsearch://host1:1234/", List("host1" -> 1234))
+    testString("elasticsearch://host1:1234/", List(ElasticsearchNode("host1", 1234)))
   }
 
   it should "errors on trailing commas" in {
-    testString("elasticsearch://host1:1234,", List("host1" -> 1234))
+    intercept[RuntimeException] {
+      testString("elasticsearch://host1:1234,", List(ElasticsearchNode("host1", 1234)))
+    }
   }
 
   it should "parse everything" in {
     testString("elasticsearch://host1:1234,host2:9999?a=b&c=d",
-      List(("host1", 1234), ("host2", 9999)),
+      List(ElasticsearchNode("host1", 1234), ElasticsearchNode("host2", 9999)),
       Map("a" -> "b", "c" -> "d"))
   }
 
   it should "parse everything with trailing slash" in {
     testString("elasticsearch://host1:1234,host2:9999/?a=b&c=d",
-      List(("host1", 1234), ("host2", 9999)),
+      List(ElasticsearchNode("host1", 1234), ElasticsearchNode("host2", 9999)),
       Map("a" -> "b", "c" -> "d"))
   }
 
