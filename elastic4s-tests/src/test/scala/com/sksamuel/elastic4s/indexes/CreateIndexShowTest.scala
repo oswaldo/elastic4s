@@ -13,18 +13,18 @@ class CreateIndexShowTest extends WordSpec with Matchers with JsonSugar with Ela
       val req = {
         createIndex("gameofthrones").mappings(
           mapping("characters").fields(
-            stringField("name"),
-            stringField("location")
+            textField("name"),
+            textField("location")
           ),
           mapping("locations").fields(
-            stringField("name"),
-            stringField("continent"),
+            textField("name"),
+            textField("continent"),
             intField("iswinter")
             ) all true source true numericDetection false
         ) refreshInterval 10.seconds shards 4 replicas 2
       }
 
-      CreateIndexShow.show(req) should matchJson("""{"settings":{"index":{"number_of_shards":4,"number_of_replicas":2,"refresh_interval":"10000ms"}},"mappings":{"characters":{"properties":{"name":{"type":"string"},"location":{"type":"string"}}},"locations":{"_all":{"enabled":true},"_source":{"enabled":true},"numeric_detection":false,"properties":{"name":{"type":"string"},"continent":{"type":"string"},"iswinter":{"type":"integer"}}}}}""")
+      CreateIndexShow.show(req) should matchJson("""{"settings":{"index":{"number_of_shards":4,"number_of_replicas":2,"refresh_interval":"10000ms"}},"mappings":{"characters":{"properties":{"name":{"type":"text"},"location":{"type":"text"}}},"locations":{"_all":{"enabled":true},"_source":{"enabled":true},"numeric_detection":false,"properties":{"name":{"type":"text"},"continent":{"type":"text"},"iswinter":{"type":"integer"}}}}}""")
     }
   }
 }

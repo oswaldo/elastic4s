@@ -1,5 +1,8 @@
 package com.sksamuel.elastic4s.indexes
 
+import java.util.UUID
+
+import com.sksamuel.elastic4s.VersionType.External
 import com.sksamuel.elastic4s.http.ElasticDsl
 import com.sksamuel.elastic4s.testkit.DiscoveryLocalNodeProvider
 import com.sksamuel.elastic4s.{Indexable, RefreshPolicy}
@@ -42,6 +45,31 @@ class IndexTest extends WordSpec with Matchers with ElasticDsl with DiscoveryLoc
       http.execute {
         search("electronics").query(matchQuery("name", "galaxy"))
       }.await.right.get.totalHits shouldBe 1
+    }
+    "support index names with +" in {
+      http.execute {
+        createIndex("hello+world").mappings(mapping("wobble"))
+      }.await
+      http.execute {
+        indexInto("hello+world/wobble").fields(Map("foo" -> "bar")).withId("a").refreshImmediately
+      }.await
+      http.execute {
+        search("hello+world").matchAllQuery()
+      }.await.right.get.totalHits shouldBe 1
+    }
+    "support / in ids" in {
+      http.execute {
+        createIndex("indexidtest").mappings(mapping("wobble"))
+      }.await
+      http.execute {
+        indexInto("indexidtest/wobble").fields(Map("foo" -> "bar")).withId("a/b").refreshImmediately
+      }.await
+      http.execute {
+        search("indexidtest").matchAllQuery()
+      }.await.right.get.totalHits shouldBe 1
+      http.execute {
+        get("indexidtest", "wobble", "a/b")
+      }.await.right.get.exists shouldBe true
     }
     "handle custom id" in {
       http.execute {
@@ -90,11 +118,59 @@ class IndexTest extends WordSpec with Matchers with ElasticDsl with DiscoveryLoc
         search("electronics").query(termQuery("speed", "4g"))
       }.await.right.get.totalHits shouldBe 1
     }
+    "create aliases with index" in {
+      val id = UUID.randomUUID()
+      val indexName = s"electronics-$id"
+      http.execute {
+        createIndex(indexName).mappings(mapping("electronics"))
+          .alias("alias_1")
+          .alias("alias_2")
+      }.await
+      val index = http.execute {
+        getIndex(indexName)
+      }.await.apply(indexName)
+      index.aliases should contain key "alias_1"
+      index.aliases should contain key "alias_2"
+
+      http.execute {
+        deleteIndex(indexName)
+      }.await
+    }
     "return created status" in {
       val result = http.execute {
         indexInto("electronics" / "electronics").fields("name" -> "super phone").refresh(RefreshPolicy.Immediate)
       }.await
       result.right.get.result shouldBe "created"
+    }
+    "return OK status if the document already exists" in {
+      val id = UUID.randomUUID()
+      http.execute {
+        indexInto("electronics" / "electronics").fields("name" -> "super phone").withId(id).refresh(RefreshPolicy.Immediate)
+      }.await
+      val result = http.execute {
+        indexInto("electronics" / "electronics").fields("name" -> "super phone").withId(id).refresh(RefreshPolicy.Immediate)
+      }.await
+      result.right.get.result shouldBe "updated"
+    }
+    "handle update concurrency" in {
+      val id = UUID.randomUUID()
+      http.execute {
+        indexInto("electronics" / "electronics")
+          .fields("name" -> "super phone")
+          .withId(id)
+          .version(2l)
+          .versionType(External)
+          .refresh(RefreshPolicy.Immediate)
+      }.await
+      val result = http.execute {
+        indexInto("electronics" / "electronics")
+          .fields("name" -> "super phone")
+          .withId(id)
+          .version(2l)
+          .versionType(External)
+          .refresh(RefreshPolicy.Immediate)
+      }.await
+      result.left.get.error should include ("version_conflict_engine_exception")
     }
     "return Left when the request has an invalid index name" in {
       val result = http.execute {

@@ -1,13 +1,13 @@
 package com.sksamuel.elastic4s.index
 
 import com.sksamuel.elastic4s.Executable
-import com.sksamuel.elastic4s.indexes.{CreateIndexDefinition, IndexShowImplicits}
+import com.sksamuel.elastic4s.indexes.CreateIndexDefinition
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse
 import org.elasticsearch.client.Client
 
 import scala.concurrent.Future
 
-trait CreateIndexExecutables extends IndexShowImplicits {
+trait CreateIndexExecutables extends IndexShowImplicitsTcp {
 
   implicit object CreateIndexDefinitionExecutable
     extends Executable[CreateIndexDefinition, CreateIndexResponse, CreateIndexResponse] {
@@ -18,6 +18,6 @@ trait CreateIndexExecutables extends IndexShowImplicits {
   }
 
   implicit class CreateIndexShowOps(f: CreateIndexDefinition) {
-    def show: String = CreateIndexShow.show(f)
+    def show: String = CreateIndexShowTcp.show(f)
   }
 }

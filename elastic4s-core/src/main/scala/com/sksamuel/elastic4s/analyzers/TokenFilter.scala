@@ -79,58 +79,67 @@ case class SynonymTokenFilter(name: String,
   def expand(expand: Boolean): SynonymTokenFilter = copy(expand = Some(expand))
 }
 
-case class TruncateTokenFilter(name: String, length: Int = 10)
+case class TruncateTokenFilter(name: String, length: Option[Int] = None)
   extends TokenFilterDefinition {
 
   val filterType = "truncate"
 
   override def build(source: XContentBuilder): Unit = {
-    source.field("length", length)
+    length.foreach(source.field("length", _))
   }
 
-  def length(length: Int): TruncateTokenFilter = copy(length = length)
+  def length(length: Int): TruncateTokenFilter = copy(length = length.some)
 }
 
-case class LengthTokenFilter(name: String, min: Int = 0, max: Int = Integer.MAX_VALUE)
+case class LengthTokenFilter(name: String, min: Option[Int] = None, max: Option[Int] = None)
   extends TokenFilterDefinition {
 
   val filterType = "length"
 
   override def build(source: XContentBuilder): Unit = {
-    if (min > 0) source.field("min", min)
-    if (max < Integer.MAX_VALUE) source.field("max", max)
+    min.foreach(source.field("min", _))
+    max.foreach(source.field("max", _))
   }
 
-  def min(min: Int): LengthTokenFilter = copy(min = min)
-  def max(max: Int): LengthTokenFilter = copy(max = max)
+  def min(min: Int): LengthTokenFilter = copy(min = min.some)
+  def max(max: Int): LengthTokenFilter = copy(max = max.some)
 }
 
-case class UniqueTokenFilter(name: String, onlyOnSamePosition: Boolean = false)
+case class UniqueTokenFilter(name: String, onlyOnSamePosition: Option[Boolean] = None)
   extends TokenFilterDefinition {
 
   val filterType = "unique"
 
   override def build(source: XContentBuilder): Unit = {
-    source.field("only_on_same_position", onlyOnSamePosition)
+    onlyOnSamePosition.foreach(source.field("only_on_same_position", _))
   }
 
-  def onlyOnSamePosition(onlyOnSamePosition: Boolean): UniqueTokenFilter = copy(onlyOnSamePosition = onlyOnSamePosition)
+  def onlyOnSamePosition(onlyOnSamePosition: Boolean): UniqueTokenFilter = copy(onlyOnSamePosition = onlyOnSamePosition.some)
 }
 
 case class KeywordMarkerTokenFilter(name: String,
                                     keywords: Seq[String] = Nil,
-                                    ignoreCase: Boolean = false)
+                                    keywordsPath: Option[String] = None,
+                                    keywordsPattern: Option[String] = None,
+                                    ignoreCase: Option[Boolean] = None)
   extends TokenFilterDefinition {
 
   val filterType = "keyword_marker"
 
   override def build(source: XContentBuilder): Unit = {
-    if (keywords.nonEmpty) source.array("keywords", keywords.toArray)
-    if (ignoreCase) source.field("ignore_case", ignoreCase)
+    if (keywords.nonEmpty)
+      source.array("keywords", keywords.toArray)
+
+    keywordsPath.foreach(source.field("keywords_path", _))
+    keywordsPattern.foreach(source.field("keywords_pattern", _))
+    ignoreCase.foreach(source.field("ignore_case", _))
   }
 
   def keywords(keywords: Seq[String]): KeywordMarkerTokenFilter = copy(keywords = keywords)
   def keywords(first: String, rest: String*): KeywordMarkerTokenFilter = copy(keywords = first +: rest)
+  def keywordsPath(path: String): KeywordMarkerTokenFilter = copy(keywordsPath = path.some)
+  def keywordsPattern(pattern: String): KeywordMarkerTokenFilter = copy(keywordsPattern = pattern.some)
+  def ignoreCase(ignoreCase: Boolean): KeywordMarkerTokenFilter = copy(ignoreCase = ignoreCase.some)
 }
 
 case class ElisionTokenFilter(name: String, articles: Seq[String] = Nil)
@@ -146,20 +155,20 @@ case class ElisionTokenFilter(name: String, articles: Seq[String] = Nil)
   def articles(first: String, rest: String*): ElisionTokenFilter = copy(articles = first +: rest)
 }
 
-case class LimitTokenFilter(name: String,
-                            maxTokenCount: Int = 1,
-                            consumeAllTokens: Boolean = false)
+case class LimitTokenCountTokenFilter(name: String,
+                                      maxTokenCount: Option[Int] = None,
+                                      consumeAllTokens: Option[Boolean] = None)
   extends TokenFilterDefinition {
 
-  val filterType = "stop"
+  val filterType = "limit"
 
   override def build(source: XContentBuilder): Unit = {
-    if (maxTokenCount > 1) source.field("max_token_count", maxTokenCount)
-    if (consumeAllTokens) source.field("consume_all_tokens", consumeAllTokens)
+    maxTokenCount.foreach(source.field("max_token_count", _))
+    consumeAllTokens.foreach(source.field("consume_all_tokens", _))
   }
 
-  def maxTokenCount(maxTokenCount: Int): LimitTokenFilter = copy(maxTokenCount = maxTokenCount)
-  def consumeAllTokens(consumeAllTokens: Boolean): LimitTokenFilter = copy(consumeAllTokens = consumeAllTokens)
+  def maxTokenCount(maxTokenCount: Int): LimitTokenCountTokenFilter = copy(maxTokenCount = maxTokenCount.some)
+  def consumeAllTokens(consumeAllTokens: Boolean): LimitTokenCountTokenFilter = copy(consumeAllTokens = consumeAllTokens.some)
 }
 
 case class StopTokenFilter(name: String,
@@ -183,12 +192,13 @@ case class StopTokenFilter(name: String,
     removeTrailing.foreach(source.field("remove_trailing", _))
   }
 
-  def ignoreCase(boolean: Boolean): StopTokenFilter = copy(ignoreCase = Option(boolean))
-  def removeTrailing(boolean: Boolean): StopTokenFilter = copy(removeTrailing = Option(boolean))
-  def enablePositionIncrements(boolean: Boolean): StopTokenFilter = copy(enablePositionIncrements = Option(boolean))
+  def ignoreCase(boolean: Boolean): StopTokenFilter = copy(ignoreCase = boolean.some)
+  def removeTrailing(boolean: Boolean): StopTokenFilter = copy(removeTrailing = boolean.some)
+  def enablePositionIncrements(boolean: Boolean): StopTokenFilter = copy(enablePositionIncrements = boolean.some)
   def language(language: String): StopTokenFilter = copy(language = language.some)
   def stopwords(stopwords: Iterable[String]): StopTokenFilter = copy(stopwords = stopwords)
   def stopwords(stopwords: String, rest: String*): StopTokenFilter = copy(stopwords = stopwords +: rest)
+  def stopwordsPath(path: String): StopTokenFilter = copy(stopwordsPath = path.some)
 }
 
 object NamedStopTokenFilter {
@@ -219,21 +229,6 @@ object NamedStopTokenFilter {
   val Spanish = "_spanish_"
   val Swedish = "_swedish_"
   val Turkish = "_turkish_"
-}
-
-case class StopTokenFilterPath(name: String,
-                               stopwords_path: String,
-                               enablePositionIncrements: Boolean = false,
-                               ignoreCase: Boolean = false)
-  extends TokenFilterDefinition {
-
-  val filterType = "stop"
-
-  override def build(source: XContentBuilder): Unit = {
-    source.field("stopwords_path", stopwords_path)
-    if (enablePositionIncrements) source.field("enable_position_increments", enablePositionIncrements)
-    if (ignoreCase) source.field("ignore_case", ignoreCase)
-  }
 }
 
 case class PatternCaptureTokenFilter(name: String,
@@ -269,9 +264,10 @@ case class PatternReplaceTokenFilter(name: String, pattern: String, replacement:
 }
 
 case class CommonGramsTokenFilter(name: String,
-                                  commonWords: Iterable[String] = Set.empty,
-                                  ignoreCase: Boolean = false,
-                                  queryMode: Boolean = false)
+                                  commonWords: Iterable[String] = Nil,
+                                  commonWordsPath: Option[String] = None,
+                                  ignoreCase: Option[Boolean] = None,
+                                  queryMode: Option[Boolean] = None)
   extends TokenFilterDefinition {
 
   val filterType = "common_grams"
@@ -279,49 +275,55 @@ case class CommonGramsTokenFilter(name: String,
   override def build(source: XContentBuilder): Unit = {
     if (commonWords.nonEmpty)
       source.array("common_words", commonWords.toArray)
-    source.field("ignore_case", ignoreCase)
-    source.field("query_mode", queryMode)
+
+    commonWordsPath.foreach(source.field("common_words_path", _))
+    ignoreCase.foreach(source.field("ignore_case", _))
+    queryMode.foreach(source.field("query_mode", _))
   }
 
   def commonWords(words: Iterable[String]): CommonGramsTokenFilter = copy(commonWords = words)
   def commonWords(first: String, rest: String*): CommonGramsTokenFilter = copy(commonWords = first +: rest)
-  def ignoreCase(ignoreCase: Boolean): CommonGramsTokenFilter = copy(ignoreCase = ignoreCase)
-  def queryMode(queryMode: Boolean): CommonGramsTokenFilter = copy(queryMode = queryMode)
+  def ignoreCase(ignoreCase: Boolean): CommonGramsTokenFilter = copy(ignoreCase = ignoreCase.some)
+  def queryMode(queryMode: Boolean): CommonGramsTokenFilter = copy(queryMode = queryMode.some)
+  def commonWordsPath(path: String): CommonGramsTokenFilter = copy(commonWordsPath = path.some)
 }
 
-case class EdgeNGramTokenFilter(name: String, minGram: Int = 1, maxGram: Int = 2, side: String = "front")
+case class EdgeNGramTokenFilter(name: String,
+                                minGram: Option[Int] = None,
+                                maxGram: Option[Int] = None,
+                                side: Option[String] = None)
   extends TokenFilterDefinition {
 
   val filterType = "edgeNGram"
 
   override def build(source: XContentBuilder): Unit = {
-    source.field("min_gram", minGram)
-    source.field("max_gram", maxGram)
-    source.field("side", side)
+    minGram.foreach(source.field("min_gram", _))
+    maxGram.foreach(source.field("max_gram", _))
+    side.foreach(source.field("side", _))
   }
 
-  def minMaxGrams(min: Int, max: Int): EdgeNGramTokenFilter = copy(minGram = min, maxGram = max)
-  def minGram(min: Int): EdgeNGramTokenFilter = copy(minGram = min)
-  def maxGram(max: Int): EdgeNGramTokenFilter = copy(maxGram = max)
-  def side(side: String): EdgeNGramTokenFilter = copy(side = side)
+  def minMaxGrams(min: Int, max: Int): EdgeNGramTokenFilter = copy(minGram = min.some, maxGram = max.some)
+  def minGram(min: Int): EdgeNGramTokenFilter = copy(minGram = min.some)
+  def maxGram(max: Int): EdgeNGramTokenFilter = copy(maxGram = max.some)
+  def side(side: String): EdgeNGramTokenFilter = copy(side = side.some)
 }
 
-case class NGramTokenFilter(name: String, minGram: Int = 1, maxGram: Int = 2)
+case class NGramTokenFilter(name: String, minGram: Option[Int] = None, maxGram: Option[Int] = None)
   extends TokenFilterDefinition {
 
   val filterType = "nGram"
 
   override def build(source: XContentBuilder): Unit = {
-    source.field("min_gram", minGram)
-    source.field("max_gram", maxGram)
+    minGram.foreach(source.field("min_gram", _))
+    maxGram.foreach(source.field("max_gram", _))
   }
 
-  def minMaxGrams(min: Int, max: Int): NGramTokenFilter = copy(minGram = min, maxGram = max)
-  def minGram(min: Int): NGramTokenFilter = copy(minGram = min)
-  def maxGram(max: Int): NGramTokenFilter = copy(maxGram = max)
+  def minMaxGrams(min: Int, max: Int): NGramTokenFilter = copy(minGram = min.some, maxGram = max.some)
+  def minGram(min: Int): NGramTokenFilter = copy(minGram = min.some)
+  def maxGram(max: Int): NGramTokenFilter = copy(maxGram = max.some)
 }
 
-case class SnowballTokenFilter(name: String, language: String = "English")
+case class SnowballTokenFilter(name: String, language: String)
   extends TokenFilterDefinition {
 
   val filterType = "snowball"
@@ -333,7 +335,7 @@ case class SnowballTokenFilter(name: String, language: String = "English")
   def lang(l: String): SnowballTokenFilter = copy(language = l)
 }
 
-case class StemmerTokenFilter(name: String, lang: String = "English")
+case class StemmerTokenFilter(name: String, lang: String)
   extends TokenFilterDefinition {
 
   val filterType = "stemmer"
@@ -345,16 +347,23 @@ case class StemmerTokenFilter(name: String, lang: String = "English")
   def lang(l: String): StemmerTokenFilter = copy(lang = l)
 }
 
-case class StemmerOverrideTokenFilter(name: String, rules: Seq[String] = Nil)
+case class StemmerOverrideTokenFilter(
+                                      name: String,
+                                      rules: Seq[String] = Nil,
+                                      rulesPath: Option[String] = None)
   extends TokenFilterDefinition {
 
   val filterType = "stemmer_override"
 
   override def build(source: XContentBuilder): Unit = {
-    source.array("rules", rules.toArray)
+    if (rules.nonEmpty)
+      source.array("rules", rules.toArray)
+
+    rulesPath.foreach(source.field("rules_path", _))
   }
 
   def rules(rules: Array[String]): StemmerOverrideTokenFilter = copy(rules = rules)
+  def rulesPath(path: String): StemmerOverrideTokenFilter = copy(rulesPath = path.some)
 }
 
 case class WordDelimiterTokenFilter(name: String,
@@ -383,42 +392,98 @@ case class WordDelimiterTokenFilter(name: String,
     stemEnglishPossesive.foreach(source.field("stem_english_possessive", _))
   }
 
-  def generateWordParts(bool: Boolean): WordDelimiterTokenFilter = copy(generateWordParts = Option(bool))
-  def generateNumberParts(bool: Boolean): WordDelimiterTokenFilter = copy(generateNumberParts = Option(bool))
-  def catenateWords(bool: Boolean): WordDelimiterTokenFilter = copy(catenateWords = Option(bool))
-  def catenateNumbers(bool: Boolean): WordDelimiterTokenFilter = copy(catenateNumbers = Option(bool))
-  def catenateAll(bool: Boolean): WordDelimiterTokenFilter = copy(catenateAll = Option(bool))
-  def splitOnCaseChange(bool: Boolean): WordDelimiterTokenFilter = copy(splitOnCaseChange = Option(bool))
-  def preserveOriginal(bool: Boolean): WordDelimiterTokenFilter = copy(preserveOriginal = Option(bool))
-  def splitOnNumerics(bool: Boolean): WordDelimiterTokenFilter = copy(splitOnNumerics = Option(bool))
-  def stemEnglishPossesive(bool: Boolean): WordDelimiterTokenFilter = copy(stemEnglishPossesive = Option(bool))
+  def generateWordParts(bool: Boolean): WordDelimiterTokenFilter = copy(generateWordParts = bool.some)
+  def generateNumberParts(bool: Boolean): WordDelimiterTokenFilter = copy(generateNumberParts = bool.some)
+  def catenateWords(bool: Boolean): WordDelimiterTokenFilter = copy(catenateWords = bool.some)
+  def catenateNumbers(bool: Boolean): WordDelimiterTokenFilter = copy(catenateNumbers = bool.some)
+  def catenateAll(bool: Boolean): WordDelimiterTokenFilter = copy(catenateAll = bool.some)
+  def splitOnCaseChange(bool: Boolean): WordDelimiterTokenFilter = copy(splitOnCaseChange = bool.some)
+  def preserveOriginal(bool: Boolean): WordDelimiterTokenFilter = copy(preserveOriginal = bool.some)
+  def splitOnNumerics(bool: Boolean): WordDelimiterTokenFilter = copy(splitOnNumerics = bool.some)
+  def stemEnglishPossesive(bool: Boolean): WordDelimiterTokenFilter = copy(stemEnglishPossesive = bool.some)
 }
 
 case class ShingleTokenFilter(name: String,
-                              max_shingle_size: Int = 2,
-                              min_shingle_size: Int = 2,
-                              output_unigrams: Boolean = true,
-                              output_unigrams_if_no_shingles: Boolean = false,
-                              token_separator: String = " ",
-                              filler_token: String = "_")
+                              maxShingleSize: Option[Int] = None,
+                              minShingleSize: Option[Int] = None,
+                              outputUnigrams: Option[Boolean] = None,
+                              outputUnigramsIfNoShingles: Option[Boolean] = None,
+                              tokenSeparator: Option[String] = None,
+                              fillerToken: Option[String] = None)
 
   extends TokenFilterDefinition {
 
   val filterType = "shingle"
 
   override def build(source: XContentBuilder): Unit = {
-    source.field("max_shingle_size", max_shingle_size)
-    source.field("min_shingle_size", min_shingle_size)
-    source.field("output_unigrams", output_unigrams)
-    source.field("output_unigrams_if_no_shingles", output_unigrams_if_no_shingles)
-    source.field("token_separator", token_separator)
-    source.field("filler_token", filler_token)
+    maxShingleSize.foreach(source.field("max_shingle_size", _))
+    minShingleSize.foreach(source.field("min_shingle_size", _))
+    outputUnigrams.foreach(source.field("output_unigrams", _))
+    outputUnigramsIfNoShingles.foreach(source.field("output_unigrams_if_no_shingles", _))
+    tokenSeparator.foreach(source.field("token_separator", _))
+    fillerToken.foreach(source.field("filler_token", _))
   }
 
-  def maxShingleSize(max: Int): ShingleTokenFilter = copy(max_shingle_size = max)
-  def minShingleSize(min: Int): ShingleTokenFilter = copy(min_shingle_size = min)
-  def outputUnigrams(b: Boolean): ShingleTokenFilter = copy(output_unigrams = b)
-  def outputUnigramsIfNoShingles(b: Boolean): ShingleTokenFilter = copy(output_unigrams_if_no_shingles = b)
-  def tokenSeperator(sep: String): ShingleTokenFilter = copy(token_separator = sep)
-  def fillerToken(filler: String): ShingleTokenFilter = copy(filler_token = filler)
+  def maxShingleSize(max: Int): ShingleTokenFilter = copy(maxShingleSize = max.some)
+  def minShingleSize(min: Int): ShingleTokenFilter = copy(minShingleSize = min.some)
+  def outputUnigrams(b: Boolean): ShingleTokenFilter = copy(outputUnigrams = b.some)
+  def outputUnigramsIfNoShingles(b: Boolean): ShingleTokenFilter = copy(outputUnigramsIfNoShingles = b.some)
+  def tokenSeparator(sep: String): ShingleTokenFilter = copy(tokenSeparator = sep.some)
+  def fillerToken(filler: String): ShingleTokenFilter = copy(fillerToken = filler.some)
 }
+
+sealed trait CompoundWordTokenFilterType {
+  def name: String
+}
+case object HyphenationDecompounder extends CompoundWordTokenFilterType {
+  override def name = "hyphenation_decompounder"
+}
+
+case object DictionaryDecompounder extends CompoundWordTokenFilterType {
+  override def name = "dictionary_decompounder"
+}
+
+
+case class CompoundWordTokenFilter(name: String,
+                                   `type`: CompoundWordTokenFilterType,
+                                   wordList: Iterable[String] = Nil,
+                                   wordListPath: Option[String] = None,
+                                   hyphenationPatternsPath: Option[String] = None,
+                                   minWordSize: Option[Int] = None,
+                                   minSubwordSize: Option[Int] = None,
+                                   maxSubwordSize: Option[Int] = None,
+                                   onlyLongestMatch: Option[Boolean] = None)
+  extends TokenFilterDefinition {
+
+  val filterType = `type`.name
+
+  override def build(source: XContentBuilder): Unit = {
+    if (wordList.nonEmpty) {
+      source.array("word_list", wordList.toArray)
+    }
+    wordListPath.foreach(source.field("word_list_path", _))
+    hyphenationPatternsPath.foreach(source.field("hyphenation_patterns_path", _))
+    minWordSize.foreach(source.field("min_word_size", _))
+    minSubwordSize.foreach(source.field("min_subword_size", _))
+    maxSubwordSize.foreach(source.field("max_subword_size", _))
+    onlyLongestMatch.foreach(source.field("only_longest_match", _))
+  }
+
+  def wordList(wordList: Iterable[String]): CompoundWordTokenFilter =
+    copy(wordList = wordList)
+  def wordList(word: String, rest: String*): CompoundWordTokenFilter =
+    copy(wordList = word +: rest)
+  def wordListPath(wordListPath: String): CompoundWordTokenFilter =
+    copy(wordListPath = wordListPath.some)
+  def hyphenationPatternsPath(hyphenationPatternsPath: String): CompoundWordTokenFilter =
+    copy(hyphenationPatternsPath = hyphenationPatternsPath.some)
+  def minWordSize(minWordSize: Int): CompoundWordTokenFilter =
+    copy(minWordSize = minWordSize.some)
+  def minSubwordSize(minSubwordSize: Int): CompoundWordTokenFilter =
+    copy(minSubwordSize = minSubwordSize.some)
+  def maxSubwordSize(maxSubwordSize: Int): CompoundWordTokenFilter =
+    copy(maxSubwordSize = maxSubwordSize.some)
+  def onlyLongestMatch(onlyLongestMatch: Boolean): CompoundWordTokenFilter =
+    copy(onlyLongestMatch = onlyLongestMatch.some)
+}
+

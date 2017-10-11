@@ -40,48 +40,52 @@ case class SearchHit(@JsonProperty("_id") id: String,
   def innerHits: Map[String, InnerHits] = Option(inner_hits).getOrElse(Map.empty).mapValues { hits =>
       val v = hits("hits").asInstanceOf[Map[String, AnyRef]]
       InnerHits(
-        total = v("total").asInstanceOf[Int],
+        total = v("total").toString.toLong,
         max_score = v("max_score").asInstanceOf[Double],
         hits = v("hits").asInstanceOf[Seq[Map[String, AnyRef]]].map { hits =>
           InnerHit(
             nested = hits.get("_nested").map(_.asInstanceOf[Map[String, AnyRef]]).getOrElse(Map.empty),
             score = hits("_score").asInstanceOf[Double],
             source = hits("_source").asInstanceOf[Map[String, AnyRef]],
-            highlight = hits.get("highlight").map(_.asInstanceOf[Map[String, Seq[String]]]).getOrElse(Map.empty)
+            highlight = hits.get("highlight").map(_.asInstanceOf[Map[String, Seq[String]]]).getOrElse(Map.empty),
+            sort = hits.get("sort").map(_.asInstanceOf[Seq[AnyRef]]).getOrElse(Seq.empty)
           )
         }
       )
   }
 }
 
-case class SearchHits(total: Int,
+case class SearchHits(total: Long,
                       @JsonProperty("max_score") maxScore: Double,
                       hits: Array[SearchHit]) {
-  def size: Int = hits.length
+  def size: Long = hits.length
   def isEmpty: Boolean = hits.isEmpty
   def nonEmpty: Boolean = hits.nonEmpty
 }
 
-case class InnerHits(total: Int,
+case class InnerHits(total: Long,
                      max_score: Double,
                      hits: Seq[InnerHit])
 
 case class InnerHit(nested: Map[String, AnyRef],
                     score: Double,
                     source: Map[String, AnyRef],
-                    highlight: Map[String, Seq[String]])
+                    highlight: Map[String, Seq[String]],
+                    sort: Seq[AnyRef])
 
-case class SearchResponse(took: Int,
+case class SearchResponse(took: Long,
                           @JsonProperty("timed_out") isTimedOut: Boolean,
                           @JsonProperty("terminated_early") isTerminatedEarly: Boolean,
                           private val suggest: Map[String, Seq[SuggestionResult]],
                           @JsonProperty("_shards") shards: Shards,
                           @JsonProperty("_scroll_id") scrollId: Option[String],
                           @JsonProperty("aggregations") aggregationsAsMap: Map[String, Any],
-                          hits: SearchHits) {
+                          hits: SearchHits,
+                          json: String // the underlying json used to generate this search response
+                         ) {
 
-  def totalHits: Int = hits.total
-  def size: Int = hits.size
+  def totalHits: Long = hits.total
+  def size: Long = hits.size
   def ids: Seq[String] = hits.hits.map(_.id)
   def maxScore: Double = hits.maxScore
 

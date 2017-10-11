@@ -16,14 +16,14 @@ class HttpClientTest extends FlatSpec with Matchers with ElasticDsl {
     }
   }
 
-  "HttpClient" should "throw an error when the host is unknown" in {
+  it should "throw an error when the host is unknown" in {
     intercept[UnknownHostException] {
       val client = HttpClient(ElasticsearchClientUri("someUnknownHost123", 1))
       executeCall(client)
     }
   }
 
-  "HttpClient" should "throw an error when the uri is invalid" in {
+  it should "throw an error when the uri is invalid" in {
     intercept[RuntimeException] {
       val client = HttpClient(ElasticsearchClientUri("1:2-3", 1))
       executeCall(client)

@@ -10,7 +10,7 @@ trait TokenFilterDsl {
 
   def keywordMarkerTokenFilter(name: String): KeywordMarkerTokenFilter = KeywordMarkerTokenFilter(name)
 
-  def limitTokenFilter(name: String): LimitTokenFilter = LimitTokenFilter(name)
+  def limitTokenCountTokenFilter(name: String): LimitTokenCountTokenFilter = LimitTokenCountTokenFilter(name)
 
   def lengthTokenFilter(name: String): LengthTokenFilter = LengthTokenFilter(name)
 
@@ -24,11 +24,11 @@ trait TokenFilterDsl {
 
   def shingleTokenFilter(name: String): ShingleTokenFilter = ShingleTokenFilter(name)
 
-  def snowballTokenFilter(name: String): SnowballTokenFilter = SnowballTokenFilter(name)
+  def snowballTokenFilter(name: String, language: String): SnowballTokenFilter = SnowballTokenFilter(name, language)
 
   def stemmerOverrideTokenFilter(name: String): StemmerOverrideTokenFilter = StemmerOverrideTokenFilter(name)
 
-  def stemmerTokenFilter(name: String): StemmerTokenFilter = StemmerTokenFilter(name)
+  def stemmerTokenFilter(name: String, language: String): StemmerTokenFilter = StemmerTokenFilter(name, language)
 
   def stopTokenFilter(name: String): StopTokenFilter = StopTokenFilter(name)
 
@@ -43,4 +43,7 @@ trait TokenFilterDsl {
   def uniqueTokenFilter(name: String): UniqueTokenFilter = UniqueTokenFilter(name)
 
   def wordDelimiterTokenFilter(name: String): WordDelimiterTokenFilter = WordDelimiterTokenFilter(name)
+
+  def compoundWordTokenFilter(name: String, `type`: CompoundWordTokenFilterType) =
+    CompoundWordTokenFilter(name, `type`)
 }

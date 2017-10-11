@@ -3,6 +3,7 @@ package com.sksamuel.elastic4s.indexes
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.JsonSugar
 import com.sksamuel.elastic4s.analyzers._
+import com.sksamuel.elastic4s.http.index.CreateIndexContentBuilder
 import com.sksamuel.elastic4s.mappings.PrefixTree
 import com.sksamuel.elastic4s.mappings.dynamictemplate.DynamicMapping
 import org.scalatest.mockito.MockitoSugar
@@ -49,9 +50,9 @@ class CreateIndexApiTest extends FlatSpec with MockitoSugar with JsonSugar with 
       CustomAnalyzerDefinition(
         "myAnalyzer2",
         StandardTokenizer("myTokenizer1", 900),
-        LengthTokenFilter("myTokenFilter2", 0, max = 10),
-        UniqueTokenFilter("myTokenFilter3", onlyOnSamePosition = true),
-        stemmerTokenFilter("myFrenchStemmerTokenFilter").lang("french"),
+        lengthTokenFilter("myTokenFilter2").min(0).max(10),
+        uniqueTokenFilter("myTokenFilter3").onlyOnSamePosition(true),
+        stemmerTokenFilter("myFrenchStemmerTokenFilter", "french"),
         PatternReplaceTokenFilter("prTokenFilter", "pattern", "rep"),
         WordDelimiterTokenFilter("myWordDelimiterTokenFilter")
           .generateWordParts(true)
@@ -67,11 +68,11 @@ class CreateIndexApiTest extends FlatSpec with MockitoSugar with JsonSugar with 
       CustomAnalyzerDefinition(
         "myAnalyzer3",
         LowercaseTokenizer,
-        StopTokenFilterPath("myTokenFilter0", "stoplist.txt", enablePositionIncrements = true, ignoreCase = true),
+        stopTokenFilter("myTokenFilter0").stopwordsPath("stoplist.txt").enablePositionIncrements(true).ignoreCase(true),
         stopTokenFilter("myTokenFilter1").enablePositionIncrements(true).ignoreCase(true),
         ReverseTokenFilter,
-        LimitTokenFilter("myTokenFilter5", 5, consumeAllTokens = false),
-        EdgeNGramTokenFilter("myEdgeNGramTokenFilter", minGram = 3, maxGram = 50),
+        LimitTokenCountTokenFilter("myTokenFilter5").maxTokenCount(5).consumeAllTokens(false),
+        edgeNGramTokenFilter("myEdgeNGramTokenFilter").minGram(3).maxGram(50).side("front"),
         StemmerOverrideTokenFilter("stemmerTokenFilter", Array("rule1", "rule2")),
         HtmlStripCharFilter,
         MappingCharFilter("mapping_charfilter", "ph" -> "f", "qu" -> "q"),
@@ -99,8 +100,8 @@ class CreateIndexApiTest extends FlatSpec with MockitoSugar with JsonSugar with 
       CustomAnalyzerDefinition(
         "myAnalyzer2",
         StandardTokenizer("myTokenizer1", 900),
-        LengthTokenFilter("myTokenFilter2", 0, max = 10),
-        UniqueTokenFilter("myTokenFilter3", onlyOnSamePosition = true),
+        lengthTokenFilter("myTokenFilter2").min(0).max(10),
+        uniqueTokenFilter("myTokenFilter3").onlyOnSamePosition(true),
         StemmerTokenFilter("myFrenchStemmerTokenFilter", lang = "french"),
         PatternReplaceTokenFilter("prTokenFilter", "pattern", "rep"),
         WordDelimiterTokenFilter("myWordDelimiterTokenFilter")
@@ -113,8 +114,8 @@ class CreateIndexApiTest extends FlatSpec with MockitoSugar with JsonSugar with 
         LowercaseTokenizer,
         StopTokenFilter("myTokenFilter1").enablePositionIncrements(true).ignoreCase(true),
         ReverseTokenFilter,
-        LimitTokenFilter("myTokenFilter5", 5, consumeAllTokens = false),
-        EdgeNGramTokenFilter("myEdgeNGramTokenFilter", minGram = 3, maxGram = 50),
+        LimitTokenCountTokenFilter("myTokenFilter5").maxTokenCount(5).consumeAllTokens(false),
+        edgeNGramTokenFilter("myEdgeNGramTokenFilter").minGram(3).maxGram(50).side("front"),
         StemmerOverrideTokenFilter("stemmerTokenFilter", Array("rule1", "rule2")),
         HtmlStripCharFilter,
         MappingCharFilter("mapping_charfilter", "ph" -> "f", "qu" -> "q"),

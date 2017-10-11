@@ -61,16 +61,74 @@ object DateHistogramAggResult {
   )
 }
 
+case class DateRangeAggResult(name: String,
+                              buckets: Seq[DateRangeBucket]) extends BucketAggregation
+
 case class DateHistogramBucket(date: String,
                                timestamp: Long,
                                override val docCount: Long,
                                private[elastic4s] val data: Map[String, Any]) extends AggBucket
 
+object DateRangeAggResult {
+  def apply(name: String, data: Map[String, Any]): DateRangeAggResult = DateRangeAggResult(
+    name,
+    data("buckets").asInstanceOf[Seq[Map[String, Any]]].map { map =>
+      DateRangeBucket(
+        map.get("from").map(_.toString.toLong),
+        map.get("from_as_string").map(_.toString),
+        map.get("to").map(_.toString.toLong),
+        map.get("to_as_string").map(_.toString),
+        map("doc_count").toString.toLong,
+        map
+      )
+    }
+  )
+}
+
+
+case class GeoHashGridAggResult(name: String,
+                                buckets: Seq[GeoHashGridBucket]) extends BucketAggregation
+
+case class GeoHashGridBucket(key: String,
+                             override val docCount: Long,
+                             private[elastic4s] val data: Map[String, Any]) extends AggBucket
+
+object GeoHashGridAggResult {
+  def apply(name: String, data: Map[String, Any]): GeoHashGridAggResult = GeoHashGridAggResult(
+    name,
+    data("buckets").asInstanceOf[Seq[Map[String, Any]]].map { map =>
+      GeoHashGridBucket(
+        map.get("key").toString,
+        map("doc_count").toString.toLong,
+        map
+      )
+    }
+  )
+}
+
+
+case class DateRangeBucket(from: Option[Long],
+                           fromAsString: Option[String],
+                           to: Option[Long],
+                           toAsString: Option[String],
+                           override val docCount: Long,
+                           private[elastic4s] val data: Map[String, Any]) extends AggBucket
+
 case class AvgAggResult(name: String, value: Double) extends MetricAggregation
 case class SumAggResult(name: String, value: Double) extends MetricAggregation
-case class MinAggResult(name: String, value: Double) extends MetricAggregation
-case class MaxAggResult(name: String, value: Double) extends MetricAggregation
+case class MinAggResult(name: String, value: Option[Double]) extends MetricAggregation
+case class MaxAggResult(name: String, value: Option[Double]) extends MetricAggregation
 case class ValueCountResult(name: String, value: Double) extends MetricAggregation
+
+case class ExtendedStatsAggResult(name: String,
+                                  count: Long,
+                                  min: Long,
+                                  max: Long,
+                                  avg: Long,
+                                  sum: Long,
+                                  sumOfSquares: Long,
+                                  variance: Double,
+                                  stdDeviation: Double)
 
 case class TopHit(@JsonProperty("_index") index: String,
                   @JsonProperty("_type") `type`: String,
@@ -123,15 +181,32 @@ trait HasAggregations {
   // bucket aggs
   def filter(name: String): FilterAggregationResult = FilterAggregationResult(name, agg(name)("doc_count").toString.toInt, agg(name))
   def dateHistogram(name: String): DateHistogramAggResult = DateHistogramAggResult(name, agg(name))
+  def dateRange(name: String): DateRangeAggResult = DateRangeAggResult(name, agg(name))
   def terms(name: String): TermsAggResult = TermsAggResult(name, agg(name))
   def children(name: String): ChildrenAggResult = ChildrenAggResult(name, agg(name))
+  def geoHashGrid(name: String): GeoHashGridAggResult = GeoHashGridAggResult(name, agg(name))
 
   // metric aggs
   def avg(name: String): AvgAggResult = AvgAggResult(name, agg(name)("value").toString.toDouble)
+
+  def extendedStats(name: String): ExtendedStatsAggResult = {
+    ExtendedStatsAggResult(
+      name,
+      count = agg(name)("count").toString.toLong,
+      min = agg(name)("min").toString.toLong,
+      max = agg(name)("max").toString.toLong,
+      avg = agg(name)("avg").toString.toLong,
+      sum = agg(name)("sum").toString.toLong,
+      sumOfSquares = agg(name)("sum_of_squares").toString.toLong,
+      variance = agg(name)("variance").toString.toDouble,
+      stdDeviation = agg(name)("std_deviation").toString.toDouble
+    )
+  }
+
   def cardinality(name: String): CardinalityAggResult = CardinalityAggResult(name, agg(name)("value").toString.toDouble)
   def sum(name: String): SumAggResult = SumAggResult(name, agg(name)("value").toString.toDouble)
-  def min(name: String): MinAggResult = MinAggResult(name, agg(name)("value").toString.toDouble)
-  def max(name: String): MaxAggResult = MaxAggResult(name, agg(name)("value").toString.toDouble)
+  def min(name: String): MinAggResult = MinAggResult(name, Option(agg(name)("value")).map(_.toString.toDouble))
+  def max(name: String): MaxAggResult = MaxAggResult(name, Option(agg(name)("value")).map(_.toString.toDouble))
   def tophits(name: String): TopHitsResult = TopHitsResult(name, agg(name))
   def valueCount(name: String): ValueCountResult = ValueCountResult(name, agg(name)("value").toString.toDouble)
 }

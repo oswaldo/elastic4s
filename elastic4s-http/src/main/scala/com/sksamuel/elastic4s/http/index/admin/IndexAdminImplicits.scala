@@ -1,8 +1,11 @@
 package com.sksamuel.elastic4s.http.index.admin
 
+import java.net.URLEncoder
+
 import com.sksamuel.elastic4s.admin._
+import com.sksamuel.elastic4s.http.index.{CreateIndexContentBuilder, CreateIndexResponse, IndexShowImplicits}
 import com.sksamuel.elastic4s.http.index.admin.IndexShardStoreResponse.StoreStatusResponse
-import com.sksamuel.elastic4s.http.index.{CreateIndexFailure, CreateIndexResponse}
+import com.sksamuel.elastic4s.http.update.RequestFailure
 import com.sksamuel.elastic4s.http.{HttpEntity, HttpExecutable, HttpRequestClient, HttpResponse, ResponseHandler}
 import com.sksamuel.elastic4s.indexes._
 import com.sksamuel.elastic4s.indexes.admin.{ForceMergeDefinition, IndexRecoveryDefinition}
@@ -137,19 +140,19 @@ trait IndexAdminImplicits extends IndexShowImplicits {
     }
   }
 
-  implicit object CreateIndexHttpExecutable extends HttpExecutable[CreateIndexDefinition, Either[CreateIndexFailure, CreateIndexResponse]] {
+  implicit object CreateIndexHttpExecutable extends HttpExecutable[CreateIndexDefinition, Either[RequestFailure, CreateIndexResponse]] {
 
-    override def responseHandler = new ResponseHandler[Either[CreateIndexFailure, CreateIndexResponse]] {
-      override def doit(response: HttpResponse): Either[CreateIndexFailure, CreateIndexResponse] = response.statusCode match {
+    override def responseHandler = new ResponseHandler[Either[RequestFailure, CreateIndexResponse]] {
+      override def doit(response: HttpResponse): Either[RequestFailure, CreateIndexResponse] = response.statusCode match {
         case 200 | 201 => Right(ResponseHandler.fromEntity[CreateIndexResponse](response.entity.getOrError("Create index responses must have a body")))
-        case 400 | 500 => Left(ResponseHandler.fromEntity[CreateIndexFailure](response.entity.get))
+        case 400 | 500 => Left(RequestFailure.fromResponse(response))
         case _ => sys.error(response.toString)
       }
     }
 
     override def execute(client: HttpRequestClient, request: CreateIndexDefinition): Future[HttpResponse] = {
 
-      val endpoint = "/" + request.name
+      val endpoint = "/" + URLEncoder.encode(request.name)
 
       val params = scala.collection.mutable.Map.empty[String, Any]
       request.waitForActiveShards.foreach(params.put("wait_for_active_shards", _))

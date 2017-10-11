@@ -871,10 +871,7 @@ folder. There is no need to configure anything externally.
 
 ###### 6.0.0 - Pre-release
 
-* HTTP Client should now be the first choice client. The TCP Client is deprecated in elastic4s, but not in Elasticsearch itself yet - see https://www.elastic.co/blog/state-of-the-official-elasticsearch-java-clients. Notably,
-
-> The Java REST client is the future for Java users of Elasticsearch. Please get involved and try out the high-level client as soon as it becomes available, as your feedback will help us to make it better faster. As soon as the REST client is feature complete and is mature enough to replace the Java API entirely, we will deprecate and finally remove the transport client and the Java API.
-
+* HTTP Client should now be the first choice client. The TCP Client has been deprecated as it will be removed in version 7 of elasticsearch itself. See https://www.elastic.co/blog/elasticsearch-5-6-0-released. Specifically, _HTTP client will become the official way for Java applications to communicate with Elasticsearch, replacing the Transport Client, which will be removed in Elasticsearch 7.0._.
 * HTTP Client no longer has a dependency on the main elasticsearch jars - no more version clashes (netty!) and a hugely reduced footprint.
 * Any methods deprecated before version 5.0.0 have been removed.
 * Operations that accept an index and a type have been deprecated in favour of index only operations. This is because Elasticsearch plan to remove types in version 7, and in version 6 you are limited to a single type per index. See - https://www.elastic.co/blog/elasticsearch-6-0-0-alpha1-released 
@@ -884,7 +881,77 @@ folder. There is no need to configure anything externally.
 * Reworked the HTTP aggregation response API to support better types and subaggs
 * disableCoord has been removed from bool and common term queries
 * Added getIndex request type
-* Update, Delete, Index and CreateIndex now return Either[RequestFailure, Response] for better error handling. The other request types will be moved over as part of future builds
+* The common operations now return Either[RequestFailure, Response] for better error handling. The other request types will be changed to this style as part of future releases.
+* `getAliases` is now overloaded to accept seq of Index and Alias objects to make it clearer how it works. The existing `getAlias` is deprecated.
+* date_range, and extended_stats aggregations have been implemented for the http client
+* Added aliases when creating indexes
+* Removed hard coded defaults from all token filters
+* Added suport for new Join Type fields (used by parent / child mappings)
+* Http client now url encodes index names and ids
+* Added reindex request type
+* Added compound word token filter
+* Loads of bugs fixes
+
+###### 5.5.4
+
+* Fixed json error when using sort in GeoDistance
+
+###### 5.5.3
+
+* Added Reindex for http
+
+###### 5.5.2
+
+* Added routing and refresh param for update by query in http
+
+###### 5.5.1
+
+* Create UpdateByQuery for http
+
+###### 5.5.0
+
+* First release of 5.5.x
+
+###### 5.4.12
+
+* Timezone in date range fix
+* Fixed completion suggestion option
+* Completion context mapping
+* Moved text for phrase suggestion
+* fix inner hits for HasChild (backport of PR 1017)
+* Completion suggestion
+* include pipeline in index definition for http client
+* make nested field optional
+* propagate inner hits in has parent query definition
+* Add bulk requests '_version' and '_version_type' fields support to elastic4s-http
+
+###### 5.4.11
+
+* Gauss function scorer not working in HTTP Client [5.4.10] #1026
+
+###### 5.4.10
+
+* #1013 elastic4s-http: Fixes handling or TermsOrder in TermsAggregationBuilder
+
+###### 5.4.9
+
+* Adding missing StatsAggregationBuilder to elastic4s-http 5.4.x
+* Making HasChildQueryDefinition min/max params each independantly optional in 5.4.x (same as 6.x)
+* Add '_parent' to SearchHit
+
+###### 5.4.8
+
+* NestedAggregationBuilder to 5.4.x, fixes #999
+* support for CumulativeSum and DateRange in HTTP aggs #996
+
+###### 5.4.7
+
+* Make ParentIdQueryDefinition extend QueryDefinition
+* Add analyzers to createTemplate settings object #977
+
+###### 5.4.6
+
+* bulk api should include _routing field #963
 
 ###### 5.4.5
 

@@ -8,7 +8,7 @@ object ElasticsearchClientUri {
 
   val HostAndPortPattern = "(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9]):(\\d+)"
   private val HostListPattern = s"(($HostAndPortPattern)(,$HostAndPortPattern)*)"
-  private val PathPattern = s"(\\/(([^\\/]+).*)?)?"
+  private val PathPattern = s"(\\/([^\\/\\?]+)?)?"
   private val QueryStringPattern = "(\\?(.*))?"
   private val UriPattern = s"^elasticsearch:\\/\\/$HostListPattern$PathPattern$QueryStringPattern$$"
   private val UriRegex = UriPattern.r
@@ -25,7 +25,7 @@ object ElasticsearchClientUri {
       case Some(m) => {
         val hoststr = m.group(1)
         val pathPrefix = Option(m.group(12))
-        val query = StringOption(m.group(16))
+        val query = StringOption(m.group(15))
         val hosts = hoststr.split(',').map(_.split(':')).map {
           case Array(host, port) => {
             (host, port.toInt)

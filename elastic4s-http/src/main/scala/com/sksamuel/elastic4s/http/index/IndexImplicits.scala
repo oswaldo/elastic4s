@@ -1,9 +1,11 @@
 package com.sksamuel.elastic4s.http.index
 
+import java.net.URLEncoder
+
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.sksamuel.elastic4s.http.values.RefreshPolicyHttpValue
 import com.sksamuel.elastic4s.http.{HttpEntity, HttpExecutable, HttpRequestClient, HttpResponse, ResponseHandler}
-import com.sksamuel.elastic4s.indexes.{GetIndexDefinition, IndexContentBuilder, IndexDefinition, IndexShowImplicits}
+import com.sksamuel.elastic4s.indexes.{GetIndexDefinition, IndexContentBuilder, IndexDefinition}
 import com.sksamuel.exts.OptionImplicits._
 import com.sksamuel.exts.collection.Maps
 import org.apache.http.entity.ContentType
@@ -16,8 +18,8 @@ trait IndexImplicits extends IndexShowImplicits {
 
     override def responseHandler: ResponseHandler[Either[IndexFailure, IndexResponse]] = new ResponseHandler[Either[IndexFailure, IndexResponse]] {
       override def doit(response: HttpResponse): Either[IndexFailure, IndexResponse] = response.statusCode match {
-        case 201 => Right(ResponseHandler.fromEntity[IndexResponse](response.entity.getOrError("Index responses must have a body")))
-        case 400 | 500 => Left(IndexFailure(response.entity.get.content))
+        case 201 | 200 => Right(ResponseHandler.fromEntity[IndexResponse](response.entity.getOrError("Index responses must have a body")))
+        case 400 | 409 | 500 => Left(IndexFailure(response.entity.get.content))
         case _ => sys.error(response.toString)
       }
     }
@@ -25,8 +27,8 @@ trait IndexImplicits extends IndexShowImplicits {
     override def execute(client: HttpRequestClient, request: IndexDefinition): Future[HttpResponse] = {
 
       val (method, endpoint) = request.id match {
-        case Some(id) => "PUT" -> s"/${request.indexAndType.index}/${request.indexAndType.`type`}/$id"
-        case None => "POST" -> s"/${request.indexAndType.index}/${request.indexAndType.`type`}"
+        case Some(id) => "PUT" -> s"/${URLEncoder.encode(request.indexAndType.index)}/${URLEncoder.encode(request.indexAndType.`type`)}/${URLEncoder.encode(id.toString)}"
+        case None => "POST" -> s"/${URLEncoder.encode(request.indexAndType.index)}/${URLEncoder.encode(request.indexAndType.`type`)}"
       }
 
       val params = scala.collection.mutable.Map.empty[String, String]

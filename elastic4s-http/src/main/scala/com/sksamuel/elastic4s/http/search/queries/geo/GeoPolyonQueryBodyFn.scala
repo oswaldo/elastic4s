@@ -28,6 +28,5 @@ object GeoPolyonQueryBodyFn {
     builder.endObject()
     builder.endObject()
     builder.endObject()
-    builder
   }
 }

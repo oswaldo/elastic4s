@@ -1,6 +1,16 @@
 package com.sksamuel.elastic4s
 
+import java.net.URLEncoder
+
 import scala.language.implicitConversions
+
+case class Index(name: String) {
+  def toIndexes: Indexes = Indexes(Seq(name))
+}
+
+object Index {
+  implicit def toIndex(str: String): Index = Index(str)
+}
 
 /**
 * Models one or more indexes, eg
@@ -8,12 +18,15 @@ import scala.language.implicitConversions
 * - "index1,index2"
 * - "_all"
 */
+
 case class Indexes(values: Seq[String]) {
   // returns an IndexesAndTypes where the types is empty
   def toIndexesAndTypes: IndexesAndTypes = IndexesAndTypes(values, Nil)
   def size: Int = values.size
   def isEmpty: Boolean = values.isEmpty
   def isNonEmpty: Boolean = values.nonEmpty
+  def string = if (values.isEmpty) "_all" else values.map(URLEncoder.encode).mkString(",")
+  def array: Array[String] = values.toArray
 }
 
 object Indexes {
